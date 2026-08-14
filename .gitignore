@@ -1,0 +1,9 @@
+# Backups created while editing the installed copy of the theme
+*.bak
+*.bak.*
+*~
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
