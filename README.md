@@ -1,8 +1,13 @@
 # Cold Fog
 
-A cold, desaturated dark theme for [Omarchy](https://omarchy.org/) — muted blue-greys, low-contrast ANSI colors, and macOS-style squircle window corners.
+A cold, desaturated dark theme for [Omarchy](https://omarchy.org/) — muted blue-greys, low-contrast
+ANSI colors, and macOS-style squircle window corners.
 
 ![Cold Fog wallpaper](backgrounds/1-cold-fog-peak.jpg)
+
+Built for **Omarchy 4** (developed against 4.0.0.alpha / Hyprland 0.56.2). Omarchy 4 moved Hyprland
+config from `.conf` to Lua and now renders a theme's Hyprland settings from `colors.toml`, so this
+theme no longer ships a `hyprland.conf` — see [Window borders](#window-borders) below.
 
 ## Install
 
@@ -28,16 +33,15 @@ omarchy theme remove cold-fog
 
 | File | Purpose |
 |------|---------|
-| `colors.toml` | The palette. Omarchy renders every themed config (alacritty, ghostty, foot, kitty, btop, waybar, mako, walker, hyprlock, helix, obsidian, …) from this file at `omarchy theme set` time. |
-| `hyprland.conf` | Border colors + the rounded-corner decoration block. Overrides the generated template. |
+| `colors.toml` | The palette, plus the Hyprland border colors. Omarchy renders every themed config (alacritty, ghostty, foot, kitty, btop, helix, obsidian, the shell/bar, hyprlock, VS Code, Neovim, …) from this file at `omarchy theme set` time. |
 | `icons.theme` | GTK icon theme (`Yaru-grey`). |
-| `neovim.lua` | LazyVim spec — Kanagawa Dragon, transparent background. |
-| `vscode.json` | VS Code color theme mapping. |
+| `neovim.lua` | LazyVim spec — Kanagawa Dragon, transparent background. Opt-in, see [Files Omarchy drops on install](#files-omarchy-drops-on-install). |
+| `vscode.json` | Points VS Code at its built-in `Default Dark Modern`. Opt-in, same caveat. |
 | `backgrounds/` | Wallpapers. Cycle with `omarchy theme bg next`. |
 
 Anything not shipped here is generated from `colors.toml` using Omarchy's templates in
-`~/.local/share/omarchy/default/themed/*.tpl`. To override a generated file, drop a file with the
-same name in this repo — theme files always win over templates.
+`/usr/share/omarchy/default/themed/*.tpl`. To override a generated file, drop a file with the same
+name in this repo — theme files win over templates, subject to the caveat below.
 
 ## Palette
 
@@ -49,49 +53,95 @@ same name in this repo — theme files always win over templates.
 | Foreground | `#C4D0D2` |
 | Accent | `#9FB0B4` |
 | Cursor | `#D8E2E4` |
-| Selection | `#2A383C` on `#DDE6E8` |
+| Active border | `#9FB0B4` |
+| Inactive border | `#283638` |
+| Selection | `#DDE6E8` on `#2A383C` |
 
 Full ANSI 0–15 in [`colors.toml`](colors.toml).
 
+## Window borders
+
+Omarchy 3 let a theme ship a `hyprland.conf` with a raw `general { col.active_border = … }` block.
+Omarchy 4 generates the theme's `hyprland.lua` from `default/themed/hyprland.lua.tpl`, which reads
+two optional keys out of `colors.toml`:
+
+```toml
+hyprland_active_border   = "rgb(9FB0B4)"
+hyprland_inactive_border = "rgb(283638)"
+```
+
+Both accept a single color or a Hyprland gradient (`"rgba(798186ee) rgba(caccccee) 45deg"`).
+`hyprland_active_border` also drives the Omarchy shell's active-border accent. Omit either key and
+Omarchy falls back to `accent` for the active border and Hyprland's grey `rgba(595959aa)` for the
+inactive one.
+
 ## Rounded corners
 
-`hyprland.conf` ships macOS-style window corners:
+Cold Fog is designed around macOS-style squircle corners. These are a *global* look'n'feel setting,
+not a per-theme one, so they live in your own config rather than in this repo. Add to
+`~/.config/hypr/looknfeel.lua`:
 
-```conf
-decoration {
-    rounding = 12
-    rounding_power = 3.0
-}
+```lua
+hl.config({
+  decoration = {
+    rounding = 12,
+    rounding_power = 3.0,
+  },
+})
 ```
 
 `rounding_power` is what makes this read as macOS rather than "just rounded". At the default `2.0`
 the corner is a circular arc; above `2.0` the curve becomes superelliptic — a squircle — and eases
 into the straight edge instead of meeting it abruptly. `3.0` is a good middle ground; `4.0` is the
-maximum.
+maximum. Requires Hyprland 0.47+.
 
-Prefer square windows? Delete the `decoration` block — the rest of the theme is unaffected.
+Prefer square windows? Leave `looknfeel.lua` alone — the rest of the theme is unaffected.
 
-Requires Hyprland 0.47+ for `rounding_power` (developed against 0.56).
+## Files Omarchy drops on install
 
-## Development
+When a theme is installed from a git repo, Omarchy 4 refuses to stage anything that runs code,
+because a theme from a stranger should not be able to execute anything. That means every `*.lua`
+(so `neovim.lua`), the terminal configs `alacritty.toml` / `foot.ini` / `ghostty.conf` /
+`kitty.conf`, and `vscode.json`. Omarchy names the skipped files on stderr:
 
-The installed copy lives at `~/.config/omarchy/themes/cold-fog` and Omarchy builds
-`~/.config/omarchy/current/theme` from it, so editing this repo alone changes nothing on a running
-system. After a change:
+```
+Ignored in ~/.config/omarchy/themes/cold-fog: neovim.lua vscode.json
+```
+
+That message is expected and harmless — Omarchy regenerates equivalents from `colors.toml`, so you
+get an `aether.nvim` colorscheme and a generated VS Code theme built from the Cold Fog palette.
+Everything else in this repo — the palette, the borders, `icons.theme`, the backgrounds — installs
+normally.
+
+Omarchy tells a repo-installed theme from a hand-written one by the `.git` directory the clone
+leaves behind. To opt into the shipped `neovim.lua` and `vscode.json`, copy the files in without it:
 
 ```bash
-cp -r colors.toml hyprland.conf icons.theme neovim.lua vscode.json backgrounds \
+mkdir -p ~/.config/omarchy/themes/cold-fog
+cp -r colors.toml icons.theme neovim.lua vscode.json backgrounds \
   ~/.config/omarchy/themes/cold-fog/
 omarchy theme set "Cold Fog"
 ```
 
-Add `OMARCHY_THEME_SKIP_BACKGROUND=1` in front of `omarchy theme set` to keep your current wallpaper
-instead of rotating to the theme's first background.
+## Development
 
-Validate Hyprland changes with:
+The installed copy lives at `~/.config/omarchy/themes/cold-fog`, and Omarchy builds
+`~/.local/state/omarchy/current/theme` from it, so editing this repo alone changes nothing on a
+running system. After a change, sync and re-apply with the `cp` above, then:
 
 ```bash
-hyprctl reload && hyprctl configerrors
+omarchy theme set "Cold Fog"
+```
+
+Add `OMARCHY_THEME_SKIP_BACKGROUND=1` in front of it to keep your current wallpaper instead of
+rotating to the theme's first background.
+
+Verify what actually landed:
+
+```bash
+hyprctl getoption general:col.active_border
+hyprctl getoption general:col.inactive_border
+hyprctl configerrors
 ```
 
 ## Wallpaper

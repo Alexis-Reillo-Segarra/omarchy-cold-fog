@@ -4,6 +4,11 @@ mode = "dark"
 accent = "#9FB0B4"
 cursor = "#D8E2E4"
 
+# Hyprland window borders. Omarchy 4 renders hypr/looknfeel from these keys;
+# without them the inactive border falls back to Hyprland's grey rgba(595959aa).
+hyprland_active_border = "rgb(9FB0B4)"
+hyprland_inactive_border = "rgb(283638)"
+
 # Primary colors
 foreground = "#C4D0D2"
 background = "#10171A"
