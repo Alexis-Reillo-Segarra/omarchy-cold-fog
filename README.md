@@ -249,10 +249,18 @@ omarchy hook theme-set cold-fog                # re-run the hooks alone
 
 ## Wallpaper
 
-`backgrounds/1-cold-fog-starry-night.png` — snow-covered peaks under the Milky Way. Provenance is
-not recorded in this repo; check the source terms before redistributing, or swap in your own by
-dropping files into `backgrounds/` and re-running `./install.sh`.
+`backgrounds/1-cold-fog-starry-night.png` — snow-covered peaks under the Milky Way, taken from a
+free-to-use wallpaper site. The exact source is not recorded here, so if you want to reuse the image
+outside of running this theme, track down the original terms first.
+
+Swap in your own by dropping files into `backgrounds/` and re-running `./install.sh`. Omarchy cycles
+through everything in that directory with `omarchy theme bg next`.
 
 ## License
 
-[MIT](LICENSE) for the configuration in this repo. The wallpaper is not covered by it.
+[MIT](LICENSE) covers the configuration in this repo — the palette, the hooks, the Hyprland and
+terminal configs, and `install.sh`. It does not cover the wallpaper, which is redistributed here
+under its own terms; see above.
+
+This is a personal desktop config published so other people can use it. It is not sold, and nothing
+in it is offered with any warranty.
