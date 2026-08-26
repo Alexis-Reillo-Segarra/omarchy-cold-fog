@@ -7,3 +7,6 @@
 .DS_Store
 .idea/
 .vscode/
+
+# Backups written by install.sh
+*.bak.[0-9]*
