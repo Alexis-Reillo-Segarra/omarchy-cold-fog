@@ -2,14 +2,18 @@
 #
 # Install Cold Fog and the desktop config that ships alongside it.
 #
-#   ./install.sh              theme + hooks + look'n'feel, then apply
-#   ./install.sh --theme-only just the theme
+#   ./install.sh              everything below, then apply
+#   ./install.sh --theme-only just the palette, icons and wallpaper
 #   ./install.sh --no-apply   install everything, skip `omarchy theme set`
 #
-# `omarchy theme install` alone gets you the palette, but it deliberately
-# refuses to stage anything from a cloned repo that runs code -- so neovim.lua,
-# vscode.json and every hook are dropped. This script installs the whole thing.
-# Everything it overwrites is backed up next to the original first.
+# The full install covers the theme, the theme hooks, the Hyprland look'n'feel,
+# the bar layout and the terminal configs. `omarchy theme install` alone gets
+# you the palette and nothing else: it deliberately refuses to stage anything
+# from a cloned repo that runs code, so neovim.lua, vscode.json and every hook
+# are dropped, and the rest lives outside the theme directory entirely.
+#
+# Monitors are deliberately NOT installed -- see desktop/hypr/monitors.lua.example.
+# Everything this script overwrites is backed up next to the original first.
 
 set -euo pipefail
 
@@ -26,7 +30,7 @@ for arg in "$@"; do
   case "$arg" in
     --theme-only) theme_only=1 ;;
     --no-apply)   apply=0 ;;
-    -h|--help)    sed -n '3,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)    sed -n '3,${/^[^#]/q;p;}' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $arg" >&2; exit 1 ;;
   esac
 done
@@ -87,17 +91,57 @@ install_looknfeel() {
   ok "Hyprland look'n'feel installed (rounding, gaps, blur)"
 }
 
+install_bar() {
+  local target="$HOME/.config/omarchy/shell.json"
+  mkdir -p "$(dirname "$target")"
+  if [[ -f $target ]] && ! cmp -s "$REPO/desktop/omarchy/shell.json" "$target"; then
+    backup "$target"
+  fi
+  install -m 600 "$REPO/desktop/omarchy/shell.json" "$target"
+  ok "Bar layout installed (media + microphone widgets, dd/MM clock)"
+}
+
+install_terminals() {
+  # Omarchy themes all four terminals from colors.toml; these configs carry the
+  # parts a theme cannot: font, padding, keybindings, and the 0.62 background
+  # opacity that makes the palette read the way it is meant to.
+  local pairs=(
+    "alacritty.toml:$HOME/.config/alacritty/alacritty.toml"
+    "foot.ini:$HOME/.config/foot/foot.ini"
+    "ghostty.config:$HOME/.config/ghostty/config"
+    "kitty.conf:$HOME/.config/kitty/kitty.conf"
+  )
+  local pair src target
+  for pair in "${pairs[@]}"; do
+    src="$REPO/desktop/terminals/${pair%%:*}"
+    target="${pair#*:}"
+    mkdir -p "$(dirname "$target")"
+    if [[ -f $target ]] && ! cmp -s "$src" "$target"; then
+      backup "$target"
+    fi
+    install -m 644 "$src" "$target"
+  done
+  ok "Terminal configs installed (alacritty, foot, ghostty, kitty)"
+}
+
 install_theme
 if (( theme_only == 0 )); then
   install_hooks
   install_looknfeel
+  install_bar
+  install_terminals
 fi
 
 if (( apply )); then
   info "Applying theme..."
   omarchy theme set "Cold Fog"
   hyprctl reload >/dev/null 2>&1 || true
+  if (( theme_only == 0 )); then
+    omarchy restart terminal >/dev/null 2>&1 || true
+    omarchy restart shell >/dev/null 2>&1 || true
+  fi
   ok "Cold Fog applied."
+  (( theme_only )) || info "foot only picks up its config in new windows -- open a fresh terminal."
 else
   info "Skipped applying. Run: omarchy theme set \"Cold Fog\""
 fi

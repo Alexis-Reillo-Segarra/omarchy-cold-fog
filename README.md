@@ -2,8 +2,8 @@
 
 A cold, desaturated dark theme for [Omarchy](https://omarchy.org/) — muted blue-greys, low-contrast
 ANSI colors, and macOS-style squircle window corners. Ships the whole desktop config, not just the
-palette: Hyprland look'n'feel and the theme hooks that retint GTK, VS Code, Discord, fish, Steam and
-friends.
+palette: Hyprland look'n'feel, translucent terminals, the bar layout, and the theme hooks that
+retint GTK, VS Code, Discord, fish, Steam and friends.
 
 ![Cold Fog wallpaper](backgrounds/1-cold-fog-starry-night.png)
 
@@ -20,8 +20,9 @@ cd omarchy-cold-fog
 ./install.sh
 ```
 
-That installs the theme, the theme hooks, and the Hyprland look'n'feel, then applies it. Anything it
-overwrites is backed up beside the original first.
+That installs the theme, the theme hooks, the Hyprland look'n'feel, the bar layout and the terminal
+configs, then applies it. Anything it overwrites is backed up beside the original first. Monitors are
+the one thing it will not touch — see [Monitors](#monitors).
 
 ```bash
 ./install.sh --theme-only   # palette, icons and wallpaper only
@@ -47,6 +48,9 @@ omarchy theme remove cold-fog
 | `vscode.json` | Points VS Code at its built-in `Default Dark Modern`. |
 | `backgrounds/` | Wallpapers. Cycle with `omarchy theme bg next`. |
 | `desktop/hypr/looknfeel.lua` | Window rounding, gaps and blur — the parts of the look Omarchy 4 has no per-theme hook for. |
+| `desktop/hypr/monitors.lua.example` | Reference only. Hardware-specific, never installed. |
+| `desktop/omarchy/shell.json` | Bar layout: which widgets, in which section, and the clock format. |
+| `desktop/terminals/` | alacritty, foot, ghostty and kitty — font, padding, keybindings and the 0.62 background opacity. |
 | `desktop/hooks/` | `theme-set` driver plus 19 hooklets that retint apps Omarchy does not theme itself. |
 | `install.sh` | Puts all of the above where it belongs. |
 
@@ -142,22 +146,69 @@ generate a Zed theme, guarded by `command -v omazed`, so machines without it are
 
 ## The bar
 
-There is nothing to configure here, and that is the point. Omarchy 4 dropped Waybar for a
-Quickshell-based shell, so a theme no longer ships bar CSS — the bar is retinted automatically from
-`colors.toml` through `default/themed/shell.toml.tpl`.
+Omarchy 4 dropped Waybar for a Quickshell-based shell, so there is no bar CSS here and none is
+needed: the bar is retinted automatically from `colors.toml` through `default/themed/shell.toml.tpl`.
+What a Waybar config used to hold is now split in two — colors come from the theme, *layout* lives in
+`~/.config/omarchy/shell.json`.
 
-Layout is separate from theming and lives in `~/.config/omarchy/shell.json`, which is yours, not the
-theme's. Cold Fog deliberately leaves it alone. Use `omarchy bar` to change it:
+[`desktop/omarchy/shell.json`](desktop/omarchy/shell.json) is the layout this config uses. Against
+the Omarchy default it adds `omarchy.media` (MPRIS, on the left) and `omarchy.microphone` (next to
+the audio output), and sets the clock to `dd/MM HH:mm` instead of the weekday format. CPU and memory
+live in `omarchy.monitor`; battery and the power profile in `omarchy.power`.
+
+Change it with `omarchy bar` rather than by hand — it rewrites the JSON and hot-reloads the shell:
 
 ```bash
-omarchy bar put omarchy.keyboard-layout --after omarchy.clock
-omarchy bar set omarchy.clock format "dd/MM HH:mm"
+omarchy bar put omarchy.active-window --section center
+omarchy bar move omarchy.clock --section center --index 0
+omarchy bar set omarchy.clock format "HH:mm"
 omarchy bar position bottom
 omarchy bar reset          # back to the Omarchy default layout
 ```
 
-To override the generated bar colors, drop a `shell.toml` in this repo — it replaces the generated
-one and survives a repo install.
+To override the generated bar *colors*, drop a `shell.toml` in this repo — it replaces the generated
+one and, unlike Lua, survives a repo install.
+
+## Terminals
+
+All four supported terminals are configured the same way: JetBrainsMono Nerd Font at 9, 14px padding,
+no decorations, CSI-u encoding for Shift+Enter so tmux and TUIs can tell it from plain Enter, and a
+background opacity of **0.62** — only the background is translucent, the text stays crisp.
+
+Opacity is not something a theme can set, because Omarchy renders each terminal's colors from
+`colors.toml` and nothing else. Each terminal spells it differently:
+
+| Terminal | Key |
+|----------|-----|
+| alacritty | `window.opacity = 0.62` |
+| ghostty | `background-opacity = 0.62` |
+| foot | `alpha=0.62` under `[colors]` |
+| kitty | `background_opacity 0.62` |
+
+Pick which one Omarchy launches:
+
+```bash
+omarchy default terminal ghostty     # or alacritty, foot, kitty
+```
+
+foot only reads its config in new windows; the rest reload with `omarchy restart terminal`.
+
+## Monitors
+
+`install.sh` never writes `~/.config/hypr/monitors.lua`, because monitor config is specific to the
+hardware in front of you and getting it wrong leaves you looking at a black screen.
+
+[`desktop/hypr/monitors.lua.example`](desktop/hypr/monitors.lua.example) is here as a worked example
+of the two things worth knowing: Omarchy's default `GDK_SCALE` is `2`, which renders GTK apps at
+double size on a 1080p panel, and `mode = "preferred"` will happily pick 60Hz on a high-refresh
+monitor. Both want an explicit value:
+
+```lua
+hl.env("GDK_SCALE", "1")
+hl.monitor({ output = "DP-1", mode = "1920x1080@165", position = "0x0", scale = 1 })
+```
+
+List what your hardware actually supports with `hyprctl monitors all`.
 
 ## What a repo install cannot deliver
 
@@ -192,6 +243,7 @@ hyprctl getoption general:col.active_border    # expect ff9fb0b4
 hyprctl getoption general:col.inactive_border  # expect ff283638
 hyprctl getoption decoration:rounding          # expect 12
 hyprctl configerrors                           # expect empty
+hyprctl monitors | grep -E '@|scale'           # expect your real refresh rates
 omarchy hook theme-set cold-fog                # re-run the hooks alone
 ```
 
