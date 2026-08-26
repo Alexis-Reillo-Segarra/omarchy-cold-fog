@@ -70,10 +70,14 @@ hyprland_active_border   = "rgb(9FB0B4)"
 hyprland_inactive_border = "rgb(283638)"
 ```
 
-Both accept a single color or a Hyprland gradient (`"rgba(798186ee) rgba(caccccee) 45deg"`).
-`hyprland_active_border` also drives the Omarchy shell's active-border accent. Omit either key and
-Omarchy falls back to `accent` for the active border and Hyprland's grey `rgba(595959aa)` for the
-inactive one.
+Both accept a single color or a Hyprland gradient (`"rgba(798186ee) rgba(caccccee) 45deg"`). Omit
+either and Omarchy falls back to `accent` for the active border and Hyprland's grey
+`rgba(595959aa)` for the inactive one.
+
+Cold Fog sets only `hyprland_inactive_border`. Its active border is the accent, which is already the
+fallback — and `hyprland_active_border` does double duty in `shell.toml`, where it also feeds
+`active-border-foreground`. Setting it there would pull the bar's accent text off `foreground`
+(`#C4D0D2`) and onto the dimmer border grey, so the key is left alone on purpose.
 
 ## Rounded corners
 
